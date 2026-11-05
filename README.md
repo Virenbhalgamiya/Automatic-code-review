@@ -1,6 +1,6 @@
 # Automated Code Review Assistant
 
-A production-quality static analysis API and database persistence service that reviews Python source files using Python's built-in Abstract Syntax Tree (`ast`) module and persists the quality metrics in PostgreSQL as native JSONB. It acts as an automated quality-gate service suitable for integration into CI/CD pipelines, checking files for common bad practices, undocumented blocks, and hardcoded credentials.
+A hybrid code review API that combines deterministic static analysis with LLM-based review. Python source files are checked with Python's built-in Abstract Syntax Tree (`ast`) module for precise, reproducible rule violations, and an LLM review pass adds context-aware feedback that fixed rules cannot express. Results and quality metrics are persisted in PostgreSQL as native JSONB. It acts as an automated quality-gate service suitable for integration into CI/CD pipelines, checking files for common bad practices, undocumented blocks, and hardcoded credentials.
 
 ## Architecture Overview
 
@@ -34,7 +34,7 @@ A production-quality static analysis API and database persistence service that r
           v                                               v
   +-----------------------+                    +------------------------+
   |    ANALYSIS ENGINE    |                    |   DATA ACCESS LAYER    |
-  | AST static analysis   |                    | connection management  |
+  | AST + LLM review      |                    | connection management  |
   | (src/engine/          |                    | & repositories         |
   |  analyzer.py)         |                    | (src/database/)        |
   +-----------------------+                    +------------------------+
@@ -86,6 +86,15 @@ docker-compose run api pytest -s
 4. **Hardcoded Secrets**: Identifies string literals assigned to variables whose names contain `password`, `secret`, `key`, `token`, or `api` (case-insensitive).
 5. **Bare Excepts**: Warns against generic `except:` statements catching all events instead of specific exceptions.
 6. **Missing Type Hints**: Triggers when arguments in function definitions lack type annotations (skips `self` and `cls` parameters).
+
+---
+
+## AI-Assisted Review
+
+The AST rules above are exact but narrow. The LLM review pass complements them:
+
+- **AST analysis** gives fast, deterministic findings with stable rule names, so results are repeatable and easy to gate on in CI/CD.
+- **LLM review** reads code in context and returns developer-friendly feedback beyond the fixed rule set.
 
 ---
 
